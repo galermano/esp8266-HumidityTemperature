@@ -8,11 +8,17 @@ app.listen(8081, function () {
 
 const Sequelize = require("sequelize");
 
-const sequelize = new Sequelize("esp32", "root", "", {
-  host: "localhost",
+// const sequelize = new Sequelize("esp32", "root", "",{
 
-  dialect: "mysql",
-});
+//     host: "localhost",
+
+//     dialect: "mysql"
+
+// })
+
+const sequelize = new Sequelize(
+  "postgres://host:xHLPnGS334OMHn8dU9WAykklYV8tV3Oy@dpg-cjsfame3m8ac73ckaegg-a.oregon-postgres.render.com/esp8266?ssl=true"
+);
 
 sequelize
   .authenticate()
@@ -35,8 +41,23 @@ const Sensor = sequelize.define("sensors", {
 
 Sensor.sync({ force: true });
 
-app.get("/", function (req, res) {
-  res.send("Projeto Esp");
+app.set("view engine", "ejs");
+app.set("views", "./views");
+
+app.get("/", async function (req, res) {
+  try {
+    var sensorsDataGet = await Sensor.findAll({
+      order: [["createdAt", "ASC"]],
+    });
+
+    var sensorsDataJson = sensorsDataGet.map((sensor) => sensor.toJSON());
+    var sensorsData = JSON.stringify(sensorsDataJson);
+
+    res.render("./index", { sensorsData });
+  } catch (error) {
+    console.error("Erro ao buscar dados do Sensor:", error);
+    res.status(500).send("Erro ao buscar dados do Sensor");
+  }
 });
 
 app.get("/cadastrar/:temperatura/:umidade", function (req, res) {
@@ -53,4 +74,8 @@ app.get("/cadastrar/:temperatura/:umidade", function (req, res) {
     });
 
   res.redirect("/");
+});
+
+app.get("/selectall", async function (req, res) {
+  res.send(await Sensor.findAll());
 });
